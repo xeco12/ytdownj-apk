@@ -22,7 +22,9 @@ android.permissions = INTERNET,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE,DOWN
 
 # Android API seviyeleri
 android.minapi = 21
-android.sdk = 34
+android.sdk = 34 
+android.accept_sdk_license = True
+android.build_tools_version = 34.0.0
 android.ndk = 25b
 android.ndk_api = 21
 
