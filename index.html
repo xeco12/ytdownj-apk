@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=375, maximum-scale=1.0">
+<title>YTDown – YouTube Downloader</title>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Google+Sans+Display:wght@700;800&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --md-primary: #FF0000;
+    --md-primary-container: #FFE5E5;
+    --md-on-primary: #FFFFFF;
+    --md-secondary: #1C1C1E;
+    --md-surface: #F8F8F8;
+    --md-surface-variant: #EFEFEF;
+    --md-background: #FFFFFF;
+    --md-on-surface: #1C1C1E;
+    --md-on-surface-variant: #6B6B6B;
+    --md-outline: #D9D9D9;
+    --md-error: #B3261E;
+    --md-elevation-1: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
+    --md-elevation-2: 0 3px 6px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.08);
+    --md-elevation-3: 0 6px 16px rgba(0,0,0,0.10), 0 3px 6px rgba(0,0,0,0.06);
+    --md-radius-xs: 8px;
+    --md-radius-sm: 12px;
+    --md-radius-md: 16px;
+    --md-radius-lg: 24px;
+    --md-radius-xl: 28px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Roboto', sans-serif;
+    background: #E8E8E8;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 20px 0 40px;
+  }
+
+  .phone-frame {
+    width: 375px;
+    min-height: 812px;
+    background: var(--md-background);
+    border-radius: 44px;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 10px #1C1C1E,
+      0 0 0 13px #3A3A3A,
+      0 30px 80px rgba(0,0,0,0.5);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Status Bar */
+  .status-bar {
+    height: 44px;
+    background: var(--md-background);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px 0;
+    flex-shrink: 0;
+  }
+  .status-bar .time { font-family: 'Google Sans'; font-weight: 600; font-size: 15px; color: #1C1C1E; }
+  .status-icons { display: flex; gap: 5px; align-items: center; }
+  .status-icons svg { width: 16px; height: 16px; fill: #1C1C1E; }
+
+  /* Top App Bar */
+  .top-bar {
+    background: var(--md-background);
+    padding: 8px 16px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .app-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: var(--md-primary);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .logo-icon svg { width: 20px; height: 20px; fill: white; }
+  .app-name {
+    font-family: 'Google Sans Display';
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--md-on-surface);
+    letter-spacing: -0.3px;
+  }
+  .app-name span { color: var(--md-primary); }
+  .top-actions { display: flex; gap: 4px; }
+  .icon-btn {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .icon-btn:active { background: var(--md-surface-variant); }
+  .icon-btn svg { width: 22px; height: 22px; fill: var(--md-on-surface-variant); }
+
+  /* Scrollable Content */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .content::-webkit-scrollbar { display: none; }
+
+  /* Search / URL Input Card */
+  .search-card {
+    background: var(--md-surface-variant);
+    border-radius: var(--md-radius-xl);
+    padding: 6px 6px 6px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 2px solid transparent;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .search-card.active {
+    background: white;
+    border-color: var(--md-primary);
+    box-shadow: 0 0 0 4px rgba(255,0,0,0.08);
+  }
+  .search-card svg { width: 20px; height: 20px; fill: var(--md-on-surface-variant); flex-shrink: 0; }
+  .search-card input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-family: 'Roboto';
+    font-size: 14px;
+    color: var(--md-on-surface);
+    outline: none;
+  }
+  .search-card input::placeholder { color: var(--md-on-surface-variant); }
+  .paste-btn {
+    background: var(--md-primary);
+    color: white;
+    border: none;
+    border-radius: var(--md-radius-lg);
+    padding: 10px 16px;
+    font-family: 'Google Sans';
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s;
+  }
+  .paste-btn:active { opacity: 0.85; }
+
+  /* Video Preview Card */
+  .video-card {
+    background: white;
+    border-radius: var(--md-radius-xl);
+    overflow: hidden;
+    box-shadow: var(--md-elevation-2);
+    animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .video-thumb {
+    position: relative;
+    height: 180px;
+    background: #0f0f0f;
+    overflow: hidden;
+  }
+  .video-thumb img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    opacity: 0.9;
+  }
+  .thumb-placeholder {
+    width: 100%; height: 100%;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 70%, #533483 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .play-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .play-btn-large {
+    width: 52px; height: 52px;
+    background: rgba(255,255,255,0.92);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  .play-btn-large svg { width: 24px; height: 24px; fill: var(--md-primary); margin-left: 3px; }
+  .duration-badge {
+    position: absolute;
+    bottom: 8px; right: 8px;
+    background: rgba(0,0,0,0.82);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'Google Sans';
+    padding: 3px 6px;
+    border-radius: 4px;
+  }
+  .video-info { padding: 14px 16px 16px; }
+  .video-title {
+    font-family: 'Google Sans';
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--md-on-surface);
+    line-height: 1.35;
+    margin-bottom: 6px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .video-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+  .channel-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .channel-avatar {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FF6B35, #F7C59F);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: white;
+    flex-shrink: 0;
+  }
+  .channel-name {
+    font-size: 12px;
+    font-family: 'Google Sans';
+    font-weight: 500;
+    color: var(--md-on-surface-variant);
+  }
+  .meta-dot { width: 3px; height: 3px; background: var(--md-on-surface-variant); border-radius: 50%; opacity: 0.5; }
+  .meta-text { font-size: 12px; color: var(--md-on-surface-variant); }
+
+  /* Download Type Tabs */
+  .type-tabs {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .tab-chip {
+    flex: 1;
+    border: 1.5px solid var(--md-outline);
+    border-radius: var(--md-radius-lg);
+    padding: 10px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.2s;
+  }
+  .tab-chip.selected {
+    border-color: var(--md-primary);
+    background: var(--md-primary-container);
+  }
+  .tab-chip svg { width: 20px; height: 20px; fill: var(--md-on-surface-variant); }
+  .tab-chip.selected svg { fill: var(--md-primary); }
+  .tab-chip span {
+    font-size: 12px;
+    font-family: 'Google Sans';
+    font-weight: 600;
+    color: var(--md-on-surface-variant);
+  }
+  .tab-chip.selected span { color: var(--md-primary); }
+
+  /* Format Options */
+  .section-title {
+    font-family: 'Google Sans';
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--md-on-surface-variant);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+  }
+
+  .format-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .format-chip {
+    border: 1.5px solid var(--md-outline);
+    border-radius: var(--md-radius-md);
+    padding: 10px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.18s;
+    background: white;
+  }
+  .format-chip:active { transform: scale(0.96); }
+  .format-chip.selected {
+    border-color: var(--md-primary);
+    background: var(--md-primary-container);
+  }
+  .format-label {
+    display: block;
+    font-family: 'Google Sans';
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--md-on-surface);
+    margin-bottom: 2px;
+  }
+  .format-chip.selected .format-label { color: var(--md-primary); }
+  .format-sub {
+    font-size: 11px;
+    color: var(--md-on-surface-variant);
+  }
+  .format-chip.selected .format-sub { color: var(--md-primary); opacity: 0.8; }
+
+  /* Quality Selector */
+  .quality-row {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  .quality-row::-webkit-scrollbar { display: none; }
+  .quality-pill {
+    flex-shrink: 0;
+    border: 1.5px solid var(--md-outline);
+    border-radius: 100px;
+    padding: 8px 16px;
+    font-family: 'Google Sans';
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--md-on-surface-variant);
+    cursor: pointer;
+    background: white;
+    transition: all 0.18s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .quality-pill .badge {
+    background: var(--md-primary);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    letter-spacing: 0.3px;
+  }
+  .quality-pill.selected {
+    border-color: var(--md-primary);
+    background: var(--md-primary);
+    color: white;
+  }
+  .quality-pill.selected .badge { background: rgba(255,255,255,0.3); }
+
+  /* Download Button */
+  .download-section { margin-top: 4px; }
+  .download-btn {
+    width: 100%;
+    background: var(--md-primary);
+    color: white;
+    border: none;
+    border-radius: var(--md-radius-xl);
+    padding: 16px;
+    font-family: 'Google Sans';
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 4px 16px rgba(255,0,0,0.35);
+    transition: all 0.2s;
+    letter-spacing: 0.2px;
+  }
+  .download-btn:active { transform: scale(0.98); box-shadow: 0 2px 8px rgba(255,0,0,0.2); }
+  .download-btn svg { width: 20px; height: 20px; fill: white; }
+  .file-size {
+    text-align: center;
+    font-size: 12px;
+    color: var(--md-on-surface-variant);
+    margin-top: 8px;
+    font-family: 'Google Sans';
+  }
+
+  /* Progress Card */
+  .progress-card {
+    background: white;
+    border-radius: var(--md-radius-xl);
+    padding: 16px;
+    box-shadow: var(--md-elevation-1);
+    display: none;
+  }
+  .progress-card.visible { display: block; animation: slideUp 0.3s ease; }
+  .progress-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .progress-icon {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: var(--md-primary-container);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .progress-icon svg { width: 20px; height: 20px; fill: var(--md-primary); }
+  .progress-text-block { flex: 1; }
+  .progress-title {
+    font-family: 'Google Sans';
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--md-on-surface);
+    margin-bottom: 2px;
+  }
+  .progress-sub { font-size: 12px; color: var(--md-on-surface-variant); }
+  .progress-track {
+    height: 6px;
+    background: var(--md-surface-variant);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--md-primary);
+    border-radius: 100px;
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+  .progress-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+  }
+  .progress-percent { font-family: 'Google Sans'; font-size: 13px; font-weight: 600; color: var(--md-primary); }
+  .speed-text { font-size: 12px; color: var(--md-on-surface-variant); }
+
+  /* Recent Downloads */
+  .recent-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .see-all {
+    font-family: 'Google Sans';
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--md-primary);
+    cursor: pointer;
+  }
+  .recent-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--md-surface-variant);
+  }
+  .recent-item:last-child { border-bottom: none; }
+  .recent-thumb {
+    width: 56px; height: 40px;
+    border-radius: var(--md-radius-xs);
+    background: #1a1a2e;
+    overflow: hidden;
+    flex-shrink: 0;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .recent-thumb .mini-play { width: 16px; height: 16px; fill: rgba(255,255,255,0.7); }
+  .thumb-grad-1 { background: linear-gradient(135deg, #667eea, #764ba2); }
+  .thumb-grad-2 { background: linear-gradient(135deg, #f093fb, #f5576c); }
+  .thumb-grad-3 { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+  .recent-info { flex: 1; min-width: 0; }
+  .recent-title {
+    font-family: 'Google Sans';
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--md-on-surface);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 3px;
+  }
+  .recent-meta { display: flex; gap: 8px; align-items: center; }
+  .recent-tag {
+    font-size: 10px;
+    font-weight: 700;
+    font-family: 'Google Sans';
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .tag-video { background: #FFE5E5; color: var(--md-primary); }
+  .tag-audio { background: #E3F0FF; color: #1565C0; }
+  .recent-size { font-size: 11px; color: var(--md-on-surface-variant); }
+  .recent-action {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: var(--md-surface-variant);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .recent-action svg { width: 16px; height: 16px; fill: var(--md-on-surface-variant); }
+
+  /* Bottom Nav */
+  .bottom-nav {
+    background: white;
+    border-top: 1px solid var(--md-outline);
+    display: flex;
+    padding: 8px 0 20px;
+    flex-shrink: 0;
+  }
+  .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    padding: 6px 0;
+    position: relative;
+  }
+  .nav-icon-wrap {
+    width: 64px; height: 32px;
+    border-radius: 100px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+  }
+  .nav-item.active .nav-icon-wrap { background: var(--md-primary-container); }
+  .nav-icon-wrap svg { width: 22px; height: 22px; fill: var(--md-on-surface-variant); }
+  .nav-item.active .nav-icon-wrap svg { fill: var(--md-primary); }
+  .nav-label {
+    font-family: 'Google Sans';
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--md-on-surface-variant);
+  }
+  .nav-item.active .nav-label { color: var(--md-primary); font-weight: 700; }
+  .nav-badge {
+    position: absolute;
+    top: 2px; right: calc(50% - 38px);
+    background: var(--md-primary);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid white;
+  }
+
+  /* Cards container */
+  .card-section {
+    background: white;
+    border-radius: var(--md-radius-xl);
+    padding: 16px;
+    box-shadow: var(--md-elevation-1);
+  }
+
+  /* Animated elements */
+  @keyframes pulse-red {
+    0%, 100% { box-shadow: 0 4px 16px rgba(255,0,0,0.35); }
+    50% { box-shadow: 0 4px 24px rgba(255,0,0,0.55); }
+  }
+  .download-btn { animation: pulse-red 2.5s ease-in-out infinite; }
+
+  /* Interaction JS */
+</style>
+</head>
+<body>
+<div class="phone-frame">
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span class="time">9:41</span>
+    <div class="status-icons">
+      <svg viewBox="0 0 24 24"><path d="M1.5 8.5C4.5 5.5 8.5 4 12 4s7.5 1.5 10.5 4.5L21 10c-2.5-2.5-5.5-4-9-4S6.5 7.5 4 10L1.5 8.5z"/><path d="M5 12.5C7 10.5 9.5 9 12 9s5 1.5 7 3.5L17.5 14c-1.5-1.5-3.5-3-5.5-3S8 12.5 6.5 14 5 12.5 5 12.5z"/><circle cx="12" cy="18" r="2"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4zM13 18h-2v-2h2v2zm0-4h-2V9h2v5z"/></svg>
+    </div>
+  </div>
+
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="app-logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M21.58 7.19a2.74 2.74 0 0 0-1.93-1.94C18 5 12 5 12 5s-6 0-7.65.25a2.74 2.74 0 0 0-1.93 1.94A28.37 28.37 0 0 0 2 12a28.37 28.37 0 0 0 .42 4.81 2.74 2.74 0 0 0 1.93 1.94C6 19 12 19 12 19s6 0 7.65-.25a2.74 2.74 0 0 0 1.93-1.94A28.37 28.37 0 0 0 22 12a28.37 28.37 0 0 0-.42-4.81zM10 15V9l5 3-5 3z"/></svg>
+      </div>
+      <span class="app-name">YT<span>Down</span></span>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn">
+        <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+      </button>
+      <button class="icon-btn">
+        <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Scrollable Content -->
+  <div class="content" id="mainContent">
+
+    <!-- URL Search Input -->
+    <div class="search-card" id="searchCard">
+      <svg viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>
+      <input type="text" id="urlInput" placeholder="YouTube bağlantısı yapıştır..." value="https://youtube.com/watch?v=dQw4w9WgXcQ" />
+      <button class="paste-btn" onclick="loadVideo()">Getir</button>
+    </div>
+
+    <!-- Video Preview Card -->
+    <div class="video-card" id="videoCard">
+      <div class="video-thumb">
+        <div class="thumb-placeholder">
+          <svg width="60" height="60" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" fill="rgba(255,255,255,0.07)"/>
+            <path d="M21.58 7.19a2.74 2.74 0 0 0-1.93-1.94C18 5 12 5 12 5s-6 0-7.65.25a2.74 2.74 0 0 0-1.93 1.94A28.37 28.37 0 0 0 2 12a28.37 28.37 0 0 0 .42 4.81 2.74 2.74 0 0 0 1.93 1.94C6 19 12 19 12 19s6 0 7.65-.25a2.74 2.74 0 0 0 1.93-1.94A28.37 28.37 0 0 0 22 12a28.37 28.37 0 0 0-.42-4.81z" fill="rgba(255,255,255,0.15)"/>
+            <path d="M10 15V9l5 3-5 3z" fill="rgba(255,255,255,0.5)"/>
+          </svg>
+        </div>
+        <div class="play-overlay">
+          <div class="play-btn-large">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+        </div>
+        <span class="duration-badge">3:32</span>
+      </div>
+      <div class="video-info">
+        <div class="video-title">Never Gonna Give You Up (Official Video Remaster 4K)</div>
+        <div class="video-meta">
+          <div class="channel-row">
+            <div class="channel-avatar">R</div>
+            <span class="channel-name">Rick Astley</span>
+          </div>
+          <div class="meta-dot"></div>
+          <span class="meta-text">1.4B görüntüleme</span>
+        </div>
+
+        <!-- Type Tabs -->
+        <div class="type-tabs">
+          <button class="tab-chip selected" onclick="selectType(this,'video')">
+            <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+            <span>Video</span>
+          </button>
+          <button class="tab-chip" onclick="selectType(this,'audio')">
+            <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+            <span>Müzik</span>
+          </button>
+          <button class="tab-chip" onclick="selectType(this,'playlist')">
+            <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 12.5v-9l6 4.5-6 4.5z"/></svg>
+            <span>Oynatma Listesi</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Format & Quality Section -->
+    <div class="card-section" id="formatSection">
+      <p class="section-title">Format</p>
+      <div class="format-grid" id="videoFormats">
+        <div class="format-chip selected" onclick="selectFormat(this)">
+          <span class="format-label">MP4</span>
+          <span class="format-sub">Video</span>
+        </div>
+        <div class="format-chip" onclick="selectFormat(this)">
+          <span class="format-label">WEBM</span>
+          <span class="format-sub">Video</span>
+        </div>
+        <div class="format-chip" onclick="selectFormat(this)">
+          <span class="format-label">MKV</span>
+          <span class="format-sub">Video</span>
+        </div>
+      </div>
+      <p class="section-title" style="margin-top:16px">Kalite</p>
+      <div class="quality-row">
+        <div class="quality-pill" onclick="selectQuality(this)">360p</div>
+        <div class="quality-pill" onclick="selectQuality(this)">480p</div>
+        <div class="quality-pill selected" onclick="selectQuality(this)">720p <span class="badge">HD</span></div>
+        <div class="quality-pill" onclick="selectQuality(this)">1080p <span class="badge">FHD</span></div>
+        <div class="quality-pill" onclick="selectQuality(this)">4K <span class="badge">UHD</span></div>
+      </div>
+    </div>
+
+    <!-- Download Button -->
+    <div class="download-section">
+      <button class="download-btn" onclick="startDownload()">
+        <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+        İndir – MP4 • 720p
+      </button>
+      <p class="file-size">Tahmini boyut: ~48 MB</p>
+    </div>
+
+    <!-- Progress Card -->
+    <div class="progress-card" id="progressCard">
+      <div class="progress-header">
+        <div class="progress-icon">
+          <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+        </div>
+        <div class="progress-text-block">
+          <div class="progress-title">İndiriliyor...</div>
+          <div class="progress-sub" id="progressSub">MP4 • 720p HD • ~48 MB</div>
+        </div>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <div class="progress-bottom">
+        <span class="progress-percent" id="progressPct">0%</span>
+        <span class="speed-text" id="progressSpeed">Bağlanıyor...</span>
+      </div>
+    </div>
+
+    <!-- Recent Downloads -->
+    <div class="card-section">
+      <div class="recent-header">
+        <p class="section-title" style="margin-bottom:0">Son İndirmeler</p>
+        <span class="see-all">Tümü</span>
+      </div>
+      <div class="recent-item">
+        <div class="recent-thumb thumb-grad-1">
+          <svg class="mini-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <div class="recent-info">
+          <div class="recent-title">Lofi Hip Hop Radio – Beats to Relax</div>
+          <div class="recent-meta">
+            <span class="recent-tag tag-audio">MP3</span>
+            <span class="recent-size">8.4 MB</span>
+          </div>
+        </div>
+        <button class="recent-action">
+          <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+        </button>
+      </div>
+      <div class="recent-item">
+        <div class="recent-thumb thumb-grad-2">
+          <svg class="mini-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <div class="recent-info">
+          <div class="recent-title">Top 10 Most Beautiful Places in the World</div>
+          <div class="recent-meta">
+            <span class="recent-tag tag-video">MP4</span>
+            <span class="recent-size">124 MB • 1080p</span>
+          </div>
+        </div>
+        <button class="recent-action">
+          <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+        </button>
+      </div>
+      <div class="recent-item">
+        <div class="recent-thumb thumb-grad-3">
+          <svg class="mini-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <div class="recent-info">
+          <div class="recent-title">Alan Walker – Faded (Official Music Video)</div>
+          <div class="recent-meta">
+            <span class="recent-tag tag-audio">MP3</span>
+            <span class="recent-size">5.1 MB • 320kbps</span>
+          </div>
+        </div>
+        <button class="recent-action">
+          <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+        </button>
+      </div>
+    </div>
+
+  </div><!-- end content -->
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <div class="nav-item active">
+      <div class="nav-icon-wrap">
+        <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+      </div>
+      <span class="nav-label">İndir</span>
+    </div>
+    <div class="nav-item" style="position:relative">
+      <div class="nav-badge">2</div>
+      <div class="nav-icon-wrap">
+        <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9h-4v4h-2v-4H9V9h4V5h2v4h4v2z"/></svg>
+      </div>
+      <span class="nav-label">Kuyruk</span>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon-wrap">
+        <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 10H8V10h4v2zm4-4H8V6h8v2z"/></svg>
+      </div>
+      <span class="nav-label">Kütüphane</span>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon-wrap">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+      </div>
+      <span class="nav-label">Profil</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Focus effect on input
+  const urlInput = document.getElementById('urlInput');
+  const searchCard = document.getElementById('searchCard');
+  urlInput.addEventListener('focus', () => searchCard.classList.add('active'));
+  urlInput.addEventListener('blur', () => searchCard.classList.remove('active'));
+
+  // Load video
+  function loadVideo() {
+    const card = document.getElementById('videoCard');
+    card.style.animation = 'none';
+    void card.offsetWidth;
+    card.style.animation = '';
+  }
+
+  // Select type
+  function selectType(el, type) {
+    document.querySelectorAll('.tab-chip').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    // Update formats based on type
+    const fg = document.getElementById('videoFormats');
+    if (type === 'audio') {
+      fg.innerHTML = `
+        <div class="format-chip selected" onclick="selectFormat(this)"><span class="format-label">MP3</span><span class="format-sub">320 kbps</span></div>
+        <div class="format-chip" onclick="selectFormat(this)"><span class="format-label">M4A</span><span class="format-sub">Yüksek</span></div>
+        <div class="format-chip" onclick="selectFormat(this)"><span class="format-label">FLAC</span><span class="format-sub">Kayıpsız</span></div>`;
+      document.querySelector('.download-btn').innerHTML = '<svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:white"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> İndir – MP3 • 320kbps';
+      document.querySelector('.file-size').textContent = 'Tahmini boyut: ~8 MB';
+    } else {
+      fg.innerHTML = `
+        <div class="format-chip selected" onclick="selectFormat(this)"><span class="format-label">MP4</span><span class="format-sub">Video</span></div>
+        <div class="format-chip" onclick="selectFormat(this)"><span class="format-label">WEBM</span><span class="format-sub">Video</span></div>
+        <div class="format-chip" onclick="selectFormat(this)"><span class="format-label">MKV</span><span class="format-sub">Video</span></div>`;
+      document.querySelector('.download-btn').innerHTML = '<svg viewBox="0 0 24 24" style="width:20px;height:20px;fill:white"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> İndir – MP4 • 720p';
+      document.querySelector('.file-size').textContent = 'Tahmini boyut: ~48 MB';
+    }
+  }
+
+  // Select format
+  function selectFormat(el) {
+    el.closest('.format-grid').querySelectorAll('.format-chip').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  // Select quality
+  function selectQuality(el) {
+    document.querySelectorAll('.quality-pill').forEach(p => p.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  // Start download with progress animation
+  function startDownload() {
+    const card = document.getElementById('progressCard');
+    card.classList.add('visible');
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    const fill = document.getElementById('progressFill');
+    const pct = document.getElementById('progressPct');
+    const speed = document.getElementById('progressSpeed');
+
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += Math.random() * 6 + 2;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+        pct.textContent = '100%';
+        fill.style.width = '100%';
+        speed.textContent = '✓ Tamamlandı!';
+        document.getElementById('progressCard').querySelector('.progress-title').textContent = 'İndirme Tamamlandı';
+        speed.style.color = '#2e7d32';
+        return;
+      }
+      fill.style.width = progress + '%';
+      pct.textContent = Math.round(progress) + '%';
+      const speeds = ['3.2 MB/s', '4.8 MB/s', '2.9 MB/s', '5.1 MB/s', '3.7 MB/s'];
+      speed.textContent = speeds[Math.floor(Math.random() * speeds.length)];
+    }, 280);
+  }
+</script>
+</body>
+</html>
